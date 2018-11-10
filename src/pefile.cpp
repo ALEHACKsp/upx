@@ -664,7 +664,7 @@ class PeFile::ImportLinker : public ElfLinkerAMD64
             addRelocation(desc_name, offsetof(import_desc, dllname),
                           "R_X86_64_32", sdll, 0);
         }
-        tstr thunk(name_for_proc(dll, proc, thunk_id, tsep));
+        tstr thunk(proc ? name_for_proc(dll, proc, thunk_id, tsep) : name_for_dll(dll, thunk_id));
         if (findSection(thunk, false) != NULL)
             return; // we already have this dll/proc
         addSection(thunk, zeros, thunk_size, 0);
@@ -684,7 +684,7 @@ class PeFile::ImportLinker : public ElfLinkerAMD64
             addRelocation(thunk, 0, reltype, "*UND*",
                           ordinal | (1ull << (thunk_size * 8 - 1)));
         }
-        else
+        else if (proc != NULL)
         {
             tstr proc_name(name_for_proc(dll, proc, proc_name_id, procname_separator));
             addSection(proc_name, zeros, 2, 1); // 2 bytes of word aligned "hint"
@@ -694,6 +694,8 @@ class PeFile::ImportLinker : public ElfLinkerAMD64
             strcat(proc_name, "X");
             addSection(proc_name, proc, strlen(proc), 0); // the name of the symbol
         }
+        else
+            info("Import descriptor for %s contains 0 imports", dll);
     }
 
     static int __acc_cdecl_qsort compare(const void *p1, const void *p2)
@@ -726,6 +728,14 @@ public:
 
         // one trailing 00 byte after the last proc name
         addSection("Zzero", zeros, 1, 0);
+    }
+
+    template <typename C>
+    void add(const C *dll)
+    {
+        ACC_COMPILE_TIME_ASSERT(sizeof(C) == 1)  // "char" or "unsigned char"
+        assert(dll);
+        add((const char*) dll, NULL, 0);
     }
 
     template <typename C>
@@ -972,7 +982,7 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
             else if (idlls[ic]->shname)
                 ilinker->add(idlls[ic]->name, idlls[ic]->shname);
             else
-                throwInternalError("should not happen");
+                ilinker->add(idlls[ic]->name);
         }
     }
 
