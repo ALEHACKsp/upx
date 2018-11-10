@@ -971,8 +971,6 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
                 ilinker->add(idlls[ic]->name, idlls[ic]->ordinal);
             else if (idlls[ic]->shname)
                 ilinker->add(idlls[ic]->name, idlls[ic]->shname);
-            else
-                throwInternalError("should not happen");
         }
     }
 
@@ -985,10 +983,8 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
     for (ic = 0; ic < dllnum; ic++)
     {
         LEXX *tarr = idlls[ic]->lookupt;
-#if 0 && ENABLE_THIS_AND_UNCOMPRESSION_WILL_BREAK // FIXME
         if (!*tarr)  // no imports from this dll
             continue;
-#endif
         set_le32(ppi, ilinker->getAddress(idlls[ic]->name));
         set_le32(ppi+4,idlls[ic]->iat - rvamin);
         ppi += 8;
